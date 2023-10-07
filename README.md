@@ -16,9 +16,14 @@ The states are considered as the hip, foot and knee position for each leg. Assum
 An action is represented by the power given to each actuator (6 in total - hip, foot, knee on each leg). On the real exoskeleton, these actuators would be placed in the same positions (hip, foot, knee).
 
 ### Rewards
-TODO
+There is a complex reward system defined for the simulation of the exoskeleton. Negative rewards are awarded each time the position of the exoskeleton would cause it to fall. This can happen for a various reasons (e.g hips are not on the same level, the knee/knees are too high above ground etc).
 
-Example of positive rewards:
+Also, the correct position of the joints should be maintained, therefore a negative reward is given each time a joint is inversed or in a wrong position.
+At each step, one foot should be on the ground, so this also influences the rewards.
+
+The agent receives positive rewards each time the joints are in the correct position, one foot is on the ground and the exoskeleton is balanced. It also receives additional rewards if it moves forward.
+
+Example of states with positive rewards:
 
 <p align="center">
   <img alt="Light" src="poza1_algorithm_RL_Exoschelet.png" width="45%">
