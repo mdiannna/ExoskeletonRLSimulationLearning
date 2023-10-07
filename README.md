@@ -1,4 +1,4 @@
-# ExoscheletonRLSimulationLearning
+# ExoskletonRLSimulationLearning
 
 The purpose of this project is to have a simulation of a bipedal exoskeleton and to train a Reinforcement Learning (RL) algorithm to correctly activate the 3 actuators on each leg in such a way, that the exoskeleton (later with a person inside) would be able to walk.
 
