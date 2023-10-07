@@ -1,5 +1,8 @@
 # ExoscheletonRLSimulationLearning
 
-
-![example positive reward 1](poza1_algorithm_RL_Exoschelet.png)   ![example positive reward 2](poza2_algorithm_RL_Exoschelet.png)
+<p align="center">
+  <img alt="Light" src="poza1_algorithm_RL_Exoschelet.png" width="45%">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img alt="Dark" src="poza2_algorithm_RL_Exoschelet.png" width="45%">
+</p>
 
