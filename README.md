@@ -5,13 +5,15 @@ The purpose of this project is to have a simulation of a bipedal exoskeleton and
 This is the first stage of the simulation. In the next stage, a 3D model will be developed and the RL algorithm will be improved.
 
 ## RL algorithm
-
+The RL model used is PPO (Proximal Policy Optimization) (John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov:
+Proximal Policy Optimization Algorithms. CoRR abs/1707.06347 (2017)). 
+Using OpenAI's gym library (https://github.com/openai/gym) simplifies the implementation and use of the RL model.
 
 ### States
-TODO
+The states are considered as the hip, foot and knee position for each leg. Assuming on the real exoskeleton there will be gyroscope or accelerometer sensors in these positions, they would serve as input data to determine the current system's states.
 
 ### Actions
-TODO
+An action is represented by the power given to each actuator (6 in total - hip, foot, knee on each leg). On the real exoskeleton, these actuators would be placed in the same positions (hip, foot, knee).
 
 ### Rewards
 TODO
