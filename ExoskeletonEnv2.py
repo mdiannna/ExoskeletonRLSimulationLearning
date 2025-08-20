@@ -39,7 +39,8 @@ class ExoskeletonEnv2(gym.Env):
         # self.observation_space = gym.spaces.Box(low=-1, high=0.4, shape=(6,), dtype=np.float32)
         print("observation space:", self.observation_space)
         # self.action_space = gym.spaces.Box(low=-0.2, high=0.2, shape=(6,), dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,), dtype=np.float32) #positive action space for moving forward
+        # self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,), dtype=np.float32) #positive action space for moving forward
+        self.action_space = gym.spaces.Box(low=0, high=1, shape=(6,), dtype=np.float32) #positive action space for moving forward
 
         self.nr_steps = 0
         self.max_steps = self.MAX_STEPS
@@ -80,9 +81,12 @@ class ExoskeletonEnv2(gym.Env):
         # Save old state
         self.old_state = [self.hip1_x, self.knee1_x, self.foot1_x, self.hip2_x, self.knee2_x, self.foot2_x]
 
+
         print("action:", action)
         
-        hip_torque, knee_torque, foot_torque = action * 2
+        # hip_torque, knee_torque, foot_torque = action 
+        l_hip_torque, l_knee_torque, l_foot_torque, r_hip_torque, r_knee_torque, r_foot_torque = action 
+
         self.foot = 0 if self.nr_steps % 2 == 0 else 1
         dt = 0.3  # bigger timestep for more movement
 
@@ -92,23 +96,23 @@ class ExoskeletonEnv2(gym.Env):
         foot_scale = 0.4
 
         if self.foot == 0:
-            self.hip1_x += hip_torque * dt * hip_scale
-            self.hip1_y += hip_torque * dt * hip_scale / 2
+            self.hip1_x += l_hip_torque * dt * hip_scale
+            self.hip1_y += l_hip_torque * dt * hip_scale / 2
 
-            self.knee1_x += (knee_torque + hip_torque/2) * dt * knee_scale
-            self.knee1_y += knee_torque * dt 
+            self.knee1_x += (l_knee_torque + l_hip_torque/2) * dt * knee_scale
+            self.knee1_y += l_knee_torque * dt 
 
-            self.foot1_x += foot_torque * dt * foot_scale * 2
-            self.foot1_y += foot_torque * dt / 2
+            self.foot1_x += l_foot_torque * dt * foot_scale * 2
+            self.foot1_y += l_foot_torque * dt / 2
         else:
-            self.hip2_x += hip_torque * dt * hip_scale
-            self.hip2_y += hip_torque * dt * hip_scale / 2
+            self.hip2_x += r_hip_torque * dt * hip_scale
+            self.hip2_y += r_hip_torque * dt * hip_scale / 2
 
-            self.knee2_x += (knee_torque + hip_torque/2) * dt * knee_scale
-            self.knee2_y += knee_torque * dt 
+            self.knee2_x += (r_knee_torque + r_hip_torque/2) * dt * knee_scale
+            self.knee2_y += r_knee_torque * dt 
 
-            self.foot2_x += foot_torque * dt * foot_scale * 2
-            self.foot2_y += foot_torque * dt / 2
+            self.foot2_x += r_foot_torque * dt * foot_scale * 2
+            self.foot2_y += r_foot_torque * dt / 2
             
         # new observation with the full state:
         new_observation = [
