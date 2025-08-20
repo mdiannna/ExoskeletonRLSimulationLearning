@@ -10,19 +10,22 @@ import math
 
 # Define the RL environment
 class ExoskeletonEnv2(gym.Env):
-    HIP_HEIGHT = 0.2
-    THIGH_LENGTH = 0.5
-    CALF_LENGTH = 0.5
-    MAX_STEPS = 100
+    HIP_HEIGHT = 0.8
+    THIGH_LENGTH = 0.4
+    DELTA_THIGH_ERR = 0.1
+    CALF_LENGTH = 0.4
+    # MAX_STEPS = 100
+    MAX_STEPS = 20 #stop if learned to do 20 steps without falling
     HIPS_DISTANCE = 0.2
     DELTA_GROUND = 0.05
-    GROUND_POS = -0.8
+    # GROUND_POS = -0.8
+    GROUND_POS = 0
 
     def __init__(self):
         # Define observation space and action space
         hip_low, hip_high = -0.2, 0.4
-        knee_low, knee_high = -0.6, 0.2
-        foot_low, foot_high = self.GROUND_POS, -0.2
+        knee_low, knee_high = 0, 0.2
+        foot_low, foot_high = self.GROUND_POS, 0.6
 
         # Define the observation space as a Box with multiple dimensions
         # observation_low = np.array([hip_low, knee_low, foot_low, hip_low, knee_low, foot_low])
@@ -36,7 +39,7 @@ class ExoskeletonEnv2(gym.Env):
         # self.observation_space = gym.spaces.Box(low=-1, high=0.4, shape=(6,), dtype=np.float32)
         print("observation space:", self.observation_space)
         # self.action_space = gym.spaces.Box(low=-0.2, high=0.2, shape=(6,), dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=-0.2, high=0.2, shape=(3,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,), dtype=np.float32) #positive action space for moving forward
 
         self.nr_steps = 0
         self.max_steps = self.MAX_STEPS
@@ -49,17 +52,17 @@ class ExoskeletonEnv2(gym.Env):
 
     def get_initial_positions(self):
         self.hip1_x = -1
-        self.hip1_y = 0
+        self.hip1_y = self.HIP_HEIGHT
         self.hip2_x = self.hip1_x + self.HIPS_DISTANCE
-        self.hip2_y = 0
+        self.hip2_y = self.HIP_HEIGHT
 
         self.knee1_x = self.hip1_x
-        self.knee1_y = self.hip1_y - self.HIP_HEIGHT
+        self.knee1_y = self.hip1_y - self.THIGH_LENGTH
         self.foot1_x = self.knee1_x
         self.foot1_y = self.GROUND_POS
 
         self.knee2_x = self.hip2_x
-        self.knee2_y = self.hip2_y - self.HIP_HEIGHT
+        self.knee2_y = self.hip2_y - self.THIGH_LENGTH
         self.foot2_x = self.knee2_x
         self.foot2_y = self.GROUND_POS
 
@@ -77,33 +80,35 @@ class ExoskeletonEnv2(gym.Env):
         # Save old state
         self.old_state = [self.hip1_x, self.knee1_x, self.foot1_x, self.hip2_x, self.knee2_x, self.foot2_x]
 
-        hip_torque, knee_torque, foot_torque = action
+        print("action:", action)
+        
+        hip_torque, knee_torque, foot_torque = action * 2
         self.foot = 0 if self.nr_steps % 2 == 0 else 1
-        dt = 0.2  # bigger timestep for more movement
+        dt = 0.3  # bigger timestep for more movement
 
         # Scaling factors for more pronounced movement
-        hip_scale = 0.5
+        hip_scale = 0.2
         knee_scale = 0.5
-        foot_scale = 0.3
+        foot_scale = 0.4
 
         if self.foot == 0:
             self.hip1_x += hip_torque * dt * hip_scale
             self.hip1_y += hip_torque * dt * hip_scale / 2
 
             self.knee1_x += (knee_torque + hip_torque/2) * dt * knee_scale
-            self.knee1_y += knee_torque * dt * knee_scale
+            self.knee1_y += knee_torque * dt 
 
-            self.foot1_x += foot_torque * dt * foot_scale
-            self.foot1_y += foot_torque * dt * foot_scale / 2
+            self.foot1_x += foot_torque * dt * foot_scale * 2
+            self.foot1_y += foot_torque * dt / 2
         else:
             self.hip2_x += hip_torque * dt * hip_scale
             self.hip2_y += hip_torque * dt * hip_scale / 2
 
             self.knee2_x += (knee_torque + hip_torque/2) * dt * knee_scale
-            self.knee2_y += knee_torque * dt * knee_scale
+            self.knee2_y += knee_torque * dt 
 
-            self.foot2_x += foot_torque * dt * foot_scale
-            self.foot2_y += foot_torque * dt * foot_scale / 2
+            self.foot2_x += foot_torque * dt * foot_scale * 2
+            self.foot2_y += foot_torque * dt / 2
             
         # new observation with the full state:
         new_observation = [
@@ -147,6 +152,8 @@ class ExoskeletonEnv2(gym.Env):
         if render:
             self.render()
             self.draw_text(f"reward: {reward:.2f}")
+            self.draw_text_lower(f"step: {self.nr_steps}")
+
             plt.pause(0.05)
         
         self.hip1_y_old = self.hip1_y
@@ -155,6 +162,11 @@ class ExoskeletonEnv2(gym.Env):
         self.hip2_y_old = self.hip2_y
         self.knee2_y_old = self.knee2_y
         self.foot2_y_old = self.foot2_y
+
+        # if reward<-10:
+        #     done = True
+        if reward<0:
+            done = True
 
         return new_observation, reward, done, {}
 
@@ -166,6 +178,20 @@ class ExoskeletonEnv2(gym.Env):
                     fc=(0., 0.8, 0.8),
                     )
             )
+        plt.draw()
+        plt.pause(0.4)
+
+    def draw_text_lower(self, text):
+        self.ax.text(
+            0.98, 0.02, text, size=10,
+            ha='right', va='bottom',          # anchor text to lower right
+            transform=self.ax.transAxes,      # use axes coords
+            bbox=dict(
+                boxstyle="round",
+                ec=(0., 0.5, 0.5),
+                fc=(0., 0.8, 0.8),
+            )
+        )
         plt.draw()
         plt.pause(0.4)
 
@@ -181,12 +207,16 @@ class ExoskeletonEnv2(gym.Env):
         if self.foot == 0:
             hip_y = self.hip1_y
             knee_y = self.knee1_y
+            knee_x = self.knee1_x
             foot_y = self.foot1_y
+            foot_x = self.foot1_x
             hip_x_prev = self.old_state[0]
             hip_x_curr = self.hip1_x
         else:
             hip_y = self.hip2_y
             knee_y = self.knee2_y
+            knee_x = self.knee2_x
+            foot_x = self.foot2_x
             foot_y = self.foot2_y
             hip_x_prev = self.old_state[3]
             hip_x_curr = self.hip2_x
@@ -195,21 +225,36 @@ class ExoskeletonEnv2(gym.Env):
         reward += max(0, 1 - abs(hip_y - hip_target)) * 2
         reward += max(0, 1 - abs(knee_y - knee_target)) * 1.5
 
-        # Reward for foot near ground
+        # # Reward for foot near ground
         foot_dist = abs(foot_y - foot_target)
         reward += max(0, 1 - foot_dist / 0.2) * 1.0
 
+
         # Forward movement reward
-        reward += (hip_x_curr - hip_x_prev) * 5.0
+        fwd_movement_coeff = 20.0
+        if hip_x_curr > hip_x_prev: #only reward forward movement without penalizing bckwd movement
+            reward += (hip_x_curr - hip_x_prev) * fwd_movement_coeff
 
         # Penalties for unrealistic positions
         if knee_y > hip_y:
             reward -= 2.0
         if foot_y > knee_y:
             reward -= 2.0
-        if foot_y < self.GROUND_POS - 0.2:
-            reward -= 3.0
+        
+        # if foot_y < self.GROUND_POS - 0.2:
+        #     reward -= 3.0
+        
+        # knee should not be in behind foot and hip:
+        if foot_x > knee_x and knee_x<hip_x_curr:
+            reward -= 100
 
+        if foot_x > knee_x:
+            reward -= 10
+
+        # reward based on thigh length:
+        calculated_thigh_length = math.sqrt((knee_x - hip_x_curr)**2 + (knee_y - hip_y)**2)
+        reward-= abs(calculated_thigh_length-self.THIGH_LENGTH) - self.DELTA_THIGH_ERR
+        
         # Hips inclination penalty
         try:
             hips_inclination = (self.hip2_y - self.hip1_y) / (self.hip2_x - self.hip1_x)
@@ -221,8 +266,8 @@ class ExoskeletonEnv2(gym.Env):
         return reward
 
     def reset(self):
-        self.draw_text("RESET")
-        # plt.pause(0.1)
+        self.draw_text_lower("RESET")
+        plt.pause(0.1)
         # Reset the environment to the initial state
         self.get_initial_positions()
         self.nr_steps = 0
@@ -243,8 +288,8 @@ class ExoskeletonEnv2(gym.Env):
         hip1_x, hip1_y, knee1_x, knee1_y, foot1_x, foot1_y, hip2_x, hip2_y, knee2_x, knee2_y, foot2_x, foot2_y = self.hip1_x, self.hip1_y, self.knee1_x, self.knee1_y, self.foot1_x, self.foot1_y, self.hip2_x, self.hip2_y, self.knee2_x, self.knee2_y, self.foot2_x, self.foot2_y
 
         ax.clear()
-        ax.set_xlim(-1.5, 1)
-        ax.set_ylim(-1, 0.5)
+        ax.set_xlim(-1.5, 1.5)
+        # ax.set_ylim(-1, 0.5) #TODO: check if neeed
 
         foot_length  = 0.2            
            
@@ -275,7 +320,7 @@ class ExoskeletonEnv2(gym.Env):
 
         ax.plot([x_positions2[4], x_positions2[4] + foot_length/2], [x_positions2[5], x_positions2[5] ], 'b-', linewidth=5)  # Foot
 
-        ax.axhline(y=-0.8, color='g', linestyle='--', label='Ground')
+        ax.axhline(y=self.GROUND_POS, color='g', linestyle='--', label='Ground')
 
         plt.draw()
 
